@@ -14,13 +14,11 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
 
-  // Verificar se o usuário já está logado ao carregar
+  // Removida a verificação automática de sessão para sempre exigir senha ao abrir a página
+  // Mas mantemos a verificação se o usuário ACABOU de aceitar um convite ou recuperar senha
   useEffect(() => {
-    const currentUser = getUser();
-    if (currentUser) {
-      setIsLoggedIn(true);
-      setUser(currentUser);
-    }
+    // Se houver um token de confirmação ou recuperação na URL, o widget (que adicionei no layout) 
+    // vai abrir automaticamente para o usuário definir a senha.
   }, []);
 
   // DATA STATE
@@ -63,14 +61,14 @@ export default function AdminLogin() {
     // LOGIN PRODUÇÃO (Netlify Identity)
     setLoginLoading(true);
     try {
-      const loggedUser = await login(username, password);
+      const loggedUser = await login(username, password, true); // O 'true' ajuda a persistir se necessário, mas o login será manual
       if (loggedUser) {
         setIsLoggedIn(true);
         setUser(loggedUser);
       }
     } catch (err: any) {
       console.error("Erro de login:", err);
-      alert("Falha no acesso. Verifique seu e-mail e senha cadastrados no Netlify.");
+      alert("Falha no acesso. Verifique se você já definiu sua senha pelo e-mail e se o e-mail/senha estão corretos.");
     } finally {
       setLoginLoading(false);
     }
@@ -79,9 +77,13 @@ export default function AdminLogin() {
   const handleLogout = async () => {
     try {
       await logout();
+      // Limpeza agressiva de qualquer resquício de sessão no navegador
+      localStorage.clear();
+      sessionStorage.clear();
     } catch (e) {}
     setIsLoggedIn(false);
     setUser(null);
+    window.location.reload(); // Recarrega para garantir estado limpo
   };
 
   const validateEmail = (email: string) => {
@@ -112,7 +114,7 @@ export default function AdminLogin() {
       }
     }
 
-    const token = user?.token?.access_token;
+    const token = user?.token?.access_token || getUser()?.token?.access_token;
 
     setLoading(true);
     try {
@@ -189,7 +191,7 @@ export default function AdminLogin() {
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = user?.token?.access_token;
+    const token = user?.token?.access_token || getUser()?.token?.access_token;
 
     setLoading(true);
     try {
@@ -351,7 +353,7 @@ export default function AdminLogin() {
         
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="text-left">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Usuário / E-mail</label>
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">E-mail</label>
             <input 
               type="text" 
               className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm cursor-text" 
