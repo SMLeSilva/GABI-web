@@ -12,7 +12,6 @@ async function commitToGitHub(path: string, content: string, message: string) {
 
   const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`;
   
-  // Buscar o SHA do arquivo atual (necessário para atualizar)
   const getRes = await fetch(url, {
     headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
   });
@@ -68,13 +67,17 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    // PROTEÇÃO: Verificar se o usuário está autenticado no Netlify
-    const authHeader = request.headers.get('authorization');
+    const authHeader = request.headers.get('authorization') || '';
     
-    // Se estiver em produção e não tiver o header de autorização OU o token estiver vazio
+    // Diagnóstico extra para sabermos exatamente o que está chegando
+    const tokenPart = authHeader.replace('Bearer ', '').trim();
+    
     if (process.env.NODE_ENV === 'production') {
-      if (!authHeader || authHeader === 'Bearer ' || authHeader === 'Bearer undefined') {
-        return NextResponse.json({ error: 'Sessão expirada ou inválida. Por favor, saia e entre novamente no painel.' }, { status: 401 });
+      // Se o token for muito curto ou inexistente, algo está errado no envio
+      if (!tokenPart || tokenPart === 'undefined' || tokenPart === 'null' || tokenPart.length < 10) {
+        return NextResponse.json({ 
+          error: `Token inválido ou ausente. Recebido: "${authHeader.substring(0, 15)}..." (Tamanho: ${authHeader.length}). Por favor, saia e entre novamente.` 
+        }, { status: 401 });
       }
     }
 
@@ -98,6 +101,7 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("Erro na API de conteúdo:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // Se o erro for do GitHub, vamos mostrar a mensagem dele!
+    return NextResponse.json({ error: "Erro no GitHub: " + error.message }, { status: 500 });
   }
 }
