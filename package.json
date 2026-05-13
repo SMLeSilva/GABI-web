@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@netlify/identity": "^1.1.0",
     "netlify-identity-widget": "^2.0.3",
     "next": "16.2.1",
     "react": "19.2.4",

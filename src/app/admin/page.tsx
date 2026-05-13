@@ -3,12 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SiteConfig } from '@/lib/content';
-
-declare global {
-  interface Window {
-    netlifyIdentity: any;
-  }
-}
+import { login, logout, getUser } from '@netlify/identity';
 
 export default function AdminLogin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -17,51 +12,16 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState('gerais');
   const [loading, setLoading] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
 
+  // Verificar se o usuário já está logado ao carregar
   useEffect(() => {
-    const initIdentity = () => {
-      const netlifyIdentity = window.netlifyIdentity;
-      if (netlifyIdentity) {
-        netlifyIdentity.init({ logo: false });
-
-        const currentUser = netlifyIdentity.currentUser();
-        if (currentUser) {
-          setIsLoggedIn(true);
-          setUser(currentUser);
-        }
-
-        netlifyIdentity.on('login', (loggedInUser: any) => {
-          setIsLoggedIn(true);
-          setUser(loggedInUser);
-          netlifyIdentity.close();
-        });
-
-        netlifyIdentity.on('logout', () => {
-          setIsLoggedIn(false);
-          setUser(null);
-        });
-      }
-    };
-
-    // Tentar inicializar. Se não estiver pronto, esperar o evento do script
-    if (window.netlifyIdentity) {
-      initIdentity();
-    } else {
-      document.addEventListener('netlifyIdentityInit', initIdentity);
+    const currentUser = getUser();
+    if (currentUser) {
+      setIsLoggedIn(true);
+      setUser(currentUser);
     }
-
-    return () => {
-      document.removeEventListener('netlifyIdentityInit', initIdentity);
-    };
   }, []);
-
-  const openNetlifyLogin = () => {
-    if (window.netlifyIdentity) {
-      window.netlifyIdentity.open();
-    } else {
-      alert("O sistema de login está carregando. Por favor, aguarde um segundo...");
-    }
-  };
 
   // DATA STATE
   const [servicosData, setServicosData] = useState<any>(null);
@@ -91,13 +51,37 @@ export default function AdminLogin() {
     if (isLoggedIn) fetchData();
   }, [isLoggedIn]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === 'admin' && password === 'admin') {
+    
+    // LOGIN LOCAL (Desenvolvimento)
+    if (process.env.NODE_ENV === 'development' && username === 'admin' && password === 'admin') {
       setIsLoggedIn(true);
-    } else {
-      alert("Usuário ou senha incorretos.");
+      return;
     }
+
+    // LOGIN PRODUÇÃO (Netlify Identity)
+    setLoginLoading(true);
+    try {
+      const loggedUser = await login(username, password);
+      if (loggedUser) {
+        setIsLoggedIn(true);
+        setUser(loggedUser);
+      }
+    } catch (err: any) {
+      console.error("Erro de login:", err);
+      alert("Falha no acesso. Verifique seu e-mail e senha cadastrados no Netlify.");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (e) {}
+    setIsLoggedIn(false);
+    setUser(null);
   };
 
   const validateEmail = (email: string) => {
@@ -128,7 +112,7 @@ export default function AdminLogin() {
       }
     }
 
-    const token = window.netlifyIdentity?.currentUser()?.token?.access_token;
+    const token = user?.token?.access_token;
 
     setLoading(true);
     try {
@@ -205,7 +189,7 @@ export default function AdminLogin() {
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = window.netlifyIdentity?.currentUser()?.token?.access_token;
+    const token = user?.token?.access_token;
 
     setLoading(true);
     try {
@@ -254,10 +238,7 @@ export default function AdminLogin() {
           </nav>
           <div className="p-4 mt-auto">
             <button 
-              onClick={() => {
-                if (window.netlifyIdentity) window.netlifyIdentity.logout();
-                setIsLoggedIn(false);
-              }} 
+              onClick={handleLogout} 
               className="w-full py-3 text-red-400 font-bold hover:bg-red-500/10 rounded-lg transition-all text-xs uppercase tracking-widest cursor-pointer"
             >
               Sair do Painel
@@ -366,27 +347,43 @@ export default function AdminLogin() {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-10 text-center">
         <div className="w-16 h-16 bg-primary mx-auto rounded-xl mb-6 flex items-center justify-center text-2xl font-black text-white">G</div>
         <h1 className="text-2xl font-black text-gray-900 mb-1 uppercase tracking-tight">Admin</h1>
-        <p className="text-gray-400 mb-8 text-[10px] font-bold uppercase tracking-widest">Escolha o método de acesso</p>
-        <div className="space-y-4">
-          <button onClick={openNetlifyLogin} className="w-full py-4 bg-primary text-white font-black rounded-xl shadow-lg hover:bg-fuchsia-600 transition-all uppercase tracking-widest text-xs cursor-pointer flex items-center justify-center gap-3">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 18c-3.314 0-6-2.686-6-6s2.686-6 6-6 6 2.686 6 6-2.686 6-6 6z"/></svg>
-            Entrar com Netlify
+        <p className="text-gray-400 mb-8 text-[10px] font-bold uppercase tracking-widest">Acesso Restrito</p>
+        
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div className="text-left">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Usuário / E-mail</label>
+            <input 
+              type="text" 
+              className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm cursor-text" 
+              placeholder="seu@email.com" 
+              value={username} 
+              onChange={(e) => setUsername(e.target.value)} 
+            />
+          </div>
+          <div className="text-left">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Senha</label>
+            <input 
+              type="password" 
+              className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm cursor-text" 
+              placeholder="••••••••" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={loginLoading}
+            className="w-full py-4 bg-gray-900 text-white font-black rounded-xl shadow-lg hover:bg-black transition-all uppercase tracking-widest text-xs cursor-pointer flex items-center justify-center gap-2"
+          >
+            {loginLoading ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Verificando...
+              </>
+            ) : 'Entrar no Painel'}
           </button>
-          {process.env.NODE_ENV === 'development' && (
-            <>
-              <div className="flex items-center gap-4 my-6">
-                <div className="flex-1 h-px bg-gray-100"></div>
-                <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">acesso local (dev)</span>
-                <div className="flex-1 h-px bg-gray-100"></div>
-              </div>
-              <form onSubmit={handleLogin} className="space-y-3">
-                <input type="text" className="w-full p-4 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-1 focus:ring-primary text-sm cursor-text" placeholder="usuário" value={username} onChange={(e) => setUsername(e.target.value)} />
-                <input type="password" className="w-full p-4 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-1 focus:ring-primary text-sm cursor-text" placeholder="senha" value={password} onChange={(e) => setPassword(e.target.value)} />
-                <button type="submit" className="w-full py-4 bg-gray-900 text-white font-black rounded-xl shadow-lg hover:bg-black transition-all uppercase tracking-widest text-xs cursor-pointer">Acesso Admin Local</button>
-              </form>
-            </>
-          )}
-        </div>
+        </form>
+
         <Link href="/" className="inline-block mt-8 text-[10px] font-black text-gray-300 hover:text-primary uppercase tracking-widest transition-colors cursor-pointer">← Voltar ao site</Link>
       </div>
     </div>
