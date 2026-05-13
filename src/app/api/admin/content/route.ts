@@ -1,29 +1,28 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { SiteConfig, ServiceCategory } from '@/lib/content';
 
-const CONTENT_DIR = path.join(process.cwd(), 'src/content');
 const GITHUB_TOKEN = process.env.GITHUB_ACCESS_TOKEN;
-const GITHUB_REPO = "SMLeSilva/GABI-web"; // Nome do seu repositório
+const REPO_OWNER = "SMLeSilva";
+const REPO_NAME = "GABI-web";
 
-async function updateGitHubFile(filePath: string, content: string, message: string) {
-  const relativePath = filePath.split(process.cwd() + path.sep).pop()?.replace(/\\/g, '/');
-  if (!relativePath) throw new Error("Caminho inválido");
+async function commitToGitHub(path: string, content: string, message: string) {
+  if (!GITHUB_TOKEN) {
+    throw new Error("GITHUB_ACCESS_TOKEN não configurada no ambiente.");
+  }
 
-  const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${relativePath}`;
+  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`;
   
-  // 1. Pegar o SHA do arquivo atual
+  // Buscar o SHA do arquivo atual (necessário para atualizar)
   const getRes = await fetch(url, {
     headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
   });
   
   let sha = "";
   if (getRes.ok) {
-    const fileData = await getRes.json();
-    sha = fileData.sha;
+    const data = await getRes.json();
+    sha = data.sha;
   }
 
-  // 2. Fazer o Update (Commit)
   const putRes = await fetch(url, {
     method: 'PUT',
     headers: {
@@ -49,50 +48,56 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type');
 
-  if (!type) {
-    return NextResponse.json({ error: 'Missing type' }, { status: 400 });
-  }
+  try {
+    let filePath = '';
+    if (type === 'servicos') filePath = 'src/content/servicos.json';
+    else if (type === 'galeria') filePath = 'src/content/galeria.json';
+    else if (type === 'config') filePath = 'src/content/config.json';
+    else return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 });
 
-  const filePath = path.join(CONTENT_DIR, `${type}.json`);
-  
-  if (!fs.existsSync(filePath)) {
-    return NextResponse.json({ error: 'File not found' }, { status: 404 });
+    const url = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${filePath}?t=${Date.now()}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    
+    if (!res.ok) throw new Error("Falha ao buscar do GitHub");
+    const data = await res.json();
+    return NextResponse.json(data);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  const fileContents = fs.readFileSync(filePath, 'utf8');
-  return NextResponse.json(JSON.parse(fileContents));
 }
 
 export async function POST(request: Request) {
-  // PROTEÇÃO: Verificar se o usuário está autenticado no Netlify
-  const authHeader = request.headers.get('authorization');
-  if (process.env.NODE_ENV === 'production' && !authHeader) {
-    return NextResponse.json({ error: 'Não autorizado. Faça login novamente.' }, { status: 401 });
-  }
-
-  const body = await request.json();
-  const { type, data } = body;
-
-  if (!type || !data) {
-    return NextResponse.json({ error: 'Missing type or data' }, { status: 400 });
-  }
-
-  const filePath = path.join(CONTENT_DIR, `${type}.json`);
-  const contentString = JSON.stringify(data, null, 2);
-  
   try {
-    // Se estivermos em produção (Netlify) e tivermos o Token, usamos a API do GitHub
-    if (GITHUB_TOKEN && process.env.NODE_ENV === 'production') {
-      await updateGitHubFile(filePath, contentString, `feat(cms): update ${type}.json via admin panel`);
-      return NextResponse.json({ success: true, mode: 'github' });
-    } 
+    // PROTEÇÃO: Verificar se o usuário está autenticado no Netlify
+    const authHeader = request.headers.get('authorization');
     
-    // Fallback para desenvolvimento local
-    fs.writeFileSync(filePath, contentString);
-    return NextResponse.json({ success: true, mode: 'local' });
-    
+    // Se estiver em produção e não tiver o header de autorização OU o token estiver vazio
+    if (process.env.NODE_ENV === 'production') {
+      if (!authHeader || authHeader === 'Bearer ' || authHeader === 'Bearer undefined') {
+        return NextResponse.json({ error: 'Sessão expirada ou inválida. Por favor, saia e entre novamente no painel.' }, { status: 401 });
+      }
+    }
+
+    const { type, data } = await request.json();
+    let filePath = '';
+    let message = '';
+
+    if (type === 'servicos') {
+      filePath = 'src/content/servicos.json';
+      message = 'update: alteração de serviços via painel admin';
+    } else if (type === 'galeria') {
+      filePath = 'src/content/galeria.json';
+      message = 'update: nova foto na galeria';
+    } else if (type === 'config') {
+      filePath = 'src/content/config.json';
+      message = 'update: alteração de contatos/configurações';
+    }
+
+    await commitToGitHub(filePath, JSON.stringify(data, null, 2), message);
+    return NextResponse.json({ success: true });
+
   } catch (error: any) {
-    console.error('Erro ao salvar:', error);
-    return NextResponse.json({ error: error.message || 'Failed to save content' }, { status: 500 });
+    console.error("Erro na API de conteúdo:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
