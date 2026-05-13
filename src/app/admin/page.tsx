@@ -59,7 +59,7 @@ export default function AdminLogin() {
       }
     } catch (err: any) {
       console.error("Erro de login:", err);
-      alert("Falha no acesso. Verifique se você já definiu sua senha pelo e-mail e se o e-mail/senha estão corretos.");
+      alert("Falha no acesso. Verifique seu e-mail e senha.");
     } finally {
       setLoginLoading(false);
     }
@@ -104,12 +104,17 @@ export default function AdminLogin() {
       }
     }
 
-    // Tentar pegar o token do estado ou do objeto global do Netlify
-    const currentUser = user || getUser();
-    const token = currentUser?.token?.access_token;
-
     setLoading(true);
     try {
+      // FORMA CORRETA: Obter o token JWT atualizado
+      const currentUser = user || getUser();
+      let token = "";
+      if (currentUser && typeof currentUser.jwt === 'function') {
+        token = await currentUser.jwt();
+      } else if (currentUser?.token?.access_token) {
+        token = currentUser.token.access_token;
+      }
+
       const res = await fetch('/api/admin/content', {
         method: 'POST',
         headers: { 
@@ -124,7 +129,6 @@ export default function AdminLogin() {
       if (res.ok) {
         alert(`${type.charAt(0).toUpperCase() + type.slice(1)} salvo com sucesso! O site foi atualizado.`);
       } else {
-        // Agora mostramos a mensagem de erro que vem da API!
         alert("Erro ao salvar: " + (result.error || "Erro desconhecido"));
       }
     } catch (error) {
@@ -188,11 +192,16 @@ export default function AdminLogin() {
     const formData = new FormData();
     formData.append('file', file);
 
-    const currentUser = user || getUser();
-    const token = currentUser?.token?.access_token;
-
     setLoading(true);
     try {
+      const currentUser = user || getUser();
+      let token = "";
+      if (currentUser && typeof currentUser.jwt === 'function') {
+        token = await currentUser.jwt();
+      } else if (currentUser?.token?.access_token) {
+        token = currentUser.token.access_token;
+      }
+
       const res = await fetch('/api/admin/upload', {
         method: 'POST',
         headers: {
