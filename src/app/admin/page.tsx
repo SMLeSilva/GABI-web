@@ -107,18 +107,43 @@ export default function AdminLogin() {
   };
 
   const getValidToken = async () => {
-    // 1. Cofre manual
+    // 1. Ler diretamente de onde o GoTrue guarda o token (a fonte real!)
+    try {
+      const gotrueRaw = localStorage.getItem('gotrue.user');
+      if (gotrueRaw) {
+        const gotrueData = JSON.parse(gotrueRaw);
+        if (gotrueData?.token?.access_token) {
+          return gotrueData.token.access_token;
+        }
+      }
+    } catch (e) {}
+
+    // 2. Cofre manual (fallback)
     const manualToken = localStorage.getItem('netlify_access_token');
     if (manualToken && manualToken.length > 20) return manualToken;
 
-    // 2. Métodos padrões
+    // 3. Varrer TODAS as chaves do localStorage procurando o token
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        const val = localStorage.getItem(key);
+        if (val && val.includes('access_token')) {
+          try {
+            const parsed = JSON.parse(val);
+            if (parsed?.token?.access_token) return parsed.token.access_token;
+            if (parsed?.access_token) return parsed.access_token;
+          } catch (e) {}
+        }
+      }
+    } catch (e) {}
+
+    // 4. Métodos do SDK
     const currentUser: any = user || getUser();
     if (!currentUser) return null;
-
     try {
       if (typeof currentUser.jwt === 'function') return await currentUser.jwt();
       if (currentUser.token?.access_token) return currentUser.token.access_token;
-      if (currentUser.access_token) return currentUser.access_token;
     } catch (e) {}
     return null;
   };
