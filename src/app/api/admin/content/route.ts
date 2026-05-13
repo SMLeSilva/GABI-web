@@ -64,6 +64,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  // PROTEÇÃO: Verificar se o usuário está autenticado no Netlify
+  const authHeader = request.headers.get('authorization');
+  if (process.env.NODE_ENV === 'production' && !authHeader) {
+    return NextResponse.json({ error: 'Não autorizado. Faça login novamente.' }, { status: 401 });
+  }
+
   const body = await request.json();
   const { type, data } = body;
 

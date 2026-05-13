@@ -108,11 +108,16 @@ export default function AdminLogin() {
       }
     }
 
+    const token = netlifyIdentity.currentUser()?.token?.access_token;
+
     setLoading(true);
     try {
       const res = await fetch('/api/admin/content', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
         body: JSON.stringify({ type, data })
       });
       if (res.ok) {
@@ -183,10 +188,15 @@ export default function AdminLogin() {
     const formData = new FormData();
     formData.append('file', file);
 
+    const token = netlifyIdentity.currentUser()?.token?.access_token;
+
     setLoading(true);
     try {
       const res = await fetch('/api/admin/upload', {
         method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
         body: formData
       });
       const result = await res.json();

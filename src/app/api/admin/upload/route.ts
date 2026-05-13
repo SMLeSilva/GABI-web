@@ -32,6 +32,12 @@ async function uploadToGitHub(fileName: string, buffer: Buffer) {
 
 export async function POST(request: Request) {
   try {
+    // PROTEÇÃO: Verificar se o usuário está autenticado no Netlify
+    const authHeader = request.headers.get('authorization');
+    if (process.env.NODE_ENV === 'production' && !authHeader) {
+      return NextResponse.json({ error: 'Não autorizado. Faça login novamente.' }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
