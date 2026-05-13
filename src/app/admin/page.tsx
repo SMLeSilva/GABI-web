@@ -52,7 +52,7 @@ export default function AdminLogin() {
 
     setLoginLoading(true);
     try {
-      const loggedUser = await login(username, password);
+      const loggedUser: any = await login(username, password);
       if (loggedUser) {
         // BRUTE FORCE: Salvar o token manualmente
         const token = loggedUser.token?.access_token || loggedUser.access_token;
@@ -102,7 +102,7 @@ export default function AdminLogin() {
     if (manualToken && manualToken.length > 20) return manualToken;
 
     // 2. Tenta os métodos padrões
-    const currentUser = user || getUser();
+    const currentUser: any = user || getUser();
     if (!currentUser) return null;
 
     try {
