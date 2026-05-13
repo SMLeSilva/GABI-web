@@ -14,11 +14,6 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
 
-  // Removida a verificação automática de sessão para sempre exigir senha ao abrir a página
-  useEffect(() => {
-    // Verificação silenciosa apenas para limpar estados se necessário
-  }, []);
-
   // DATA STATE
   const [servicosData, setServicosData] = useState<any>(null);
   const [galeriaData, setGaleriaData] = useState<any>(null);
@@ -50,16 +45,13 @@ export default function AdminLogin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // LOGIN LOCAL (Desenvolvimento)
     if (process.env.NODE_ENV === 'development' && username === 'admin' && password === 'admin') {
       setIsLoggedIn(true);
       return;
     }
 
-    // LOGIN PRODUÇÃO (Netlify Identity)
     setLoginLoading(true);
     try {
-      // Corrigido: Removido o terceiro argumento não suportado
       const loggedUser = await login(username, password);
       if (loggedUser) {
         setIsLoggedIn(true);
@@ -112,8 +104,9 @@ export default function AdminLogin() {
       }
     }
 
-    // Corrigido: Usar o estado 'user' que já contém o token
-    const token = user?.token?.access_token;
+    // Tentar pegar o token do estado ou do objeto global do Netlify
+    const currentUser = user || getUser();
+    const token = currentUser?.token?.access_token;
 
     setLoading(true);
     try {
@@ -125,13 +118,18 @@ export default function AdminLogin() {
         },
         body: JSON.stringify({ type, data })
       });
+      
+      const result = await res.json();
+      
       if (res.ok) {
         alert(`${type.charAt(0).toUpperCase() + type.slice(1)} salvo com sucesso! O site foi atualizado.`);
       } else {
-        alert("Erro ao salvar.");
+        // Agora mostramos a mensagem de erro que vem da API!
+        alert("Erro ao salvar: " + (result.error || "Erro desconhecido"));
       }
     } catch (error) {
       console.error("Erro ao salvar:", error);
+      alert("Erro de conexão ao salvar.");
     } finally {
       setLoading(false);
     }
@@ -190,8 +188,8 @@ export default function AdminLogin() {
     const formData = new FormData();
     formData.append('file', file);
 
-    // Corrigido: Usar o estado 'user'
-    const token = user?.token?.access_token;
+    const currentUser = user || getUser();
+    const token = currentUser?.token?.access_token;
 
     setLoading(true);
     try {
@@ -209,7 +207,7 @@ export default function AdminLogin() {
         setServicosData(newData);
         alert("Imagem enviada e otimizada com sucesso!");
       } else {
-        alert("Erro no upload: " + result.error);
+        alert("Erro no upload: " + (result.error || "Erro desconhecido"));
       }
     } catch (error) {
       console.error("Erro no upload:", error);
