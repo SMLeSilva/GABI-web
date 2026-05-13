@@ -4,6 +4,12 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SiteConfig } from '@/lib/content';
 
+declare global {
+  interface Window {
+    netlifyIdentity: any;
+  }
+}
+
 export default function AdminLogin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -11,21 +17,12 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState('gerais');
   const [loading, setLoading] = useState(false);
-  const [identity, setIdentity] = useState<any>(null);
 
   useEffect(() => {
-    // Carregar Netlify Identity dinamicamente apenas no cliente
-    try {
-      const netlifyLib = require('netlify-identity-widget');
-      // Algumas versões exportam como .default, outras direto no objeto
-      const netlifyIdentity = netlifyLib.default || netlifyLib;
-      
-      if (netlifyIdentity && typeof netlifyIdentity.init === 'function') {
-        setIdentity(netlifyIdentity);
-
-        netlifyIdentity.init({
-          logo: false
-        });
+    const initIdentity = () => {
+      const netlifyIdentity = window.netlifyIdentity;
+      if (netlifyIdentity) {
+        netlifyIdentity.init({ logo: false });
 
         const currentUser = netlifyIdentity.currentUser();
         if (currentUser) {
@@ -44,27 +41,25 @@ export default function AdminLogin() {
           setUser(null);
         });
       }
-    } catch (err) {
-      console.error("Erro ao carregar Netlify Identity:", err);
+    };
+
+    // Tentar inicializar. Se não estiver pronto, esperar o evento do script
+    if (window.netlifyIdentity) {
+      initIdentity();
+    } else {
+      document.addEventListener('netlifyIdentityInit', initIdentity);
     }
 
     return () => {
-      try {
-        const netlifyLib = require('netlify-identity-widget');
-        const netlifyIdentity = netlifyLib.default || netlifyLib;
-        if (netlifyIdentity && typeof netlifyIdentity.off === 'function') {
-          netlifyIdentity.off('login');
-          netlifyIdentity.off('logout');
-        }
-      } catch (e) {}
+      document.removeEventListener('netlifyIdentityInit', initIdentity);
     };
   }, []);
 
   const openNetlifyLogin = () => {
-    if (identity && typeof identity.open === 'function') {
-      identity.open();
+    if (window.netlifyIdentity) {
+      window.netlifyIdentity.open();
     } else {
-      alert("O sistema de login do Netlify está sendo carregado. Por favor, aguarde alguns segundos ou use o login local se disponível.");
+      alert("O sistema de login está carregando. Por favor, aguarde um segundo...");
     }
   };
 
@@ -133,7 +128,7 @@ export default function AdminLogin() {
       }
     }
 
-    const token = identity?.currentUser()?.token?.access_token;
+    const token = window.netlifyIdentity?.currentUser()?.token?.access_token;
 
     setLoading(true);
     try {
@@ -163,7 +158,7 @@ export default function AdminLogin() {
     const newData = { ...servicosData };
     newData.categories.push({
       title: title,
-      image: "/images/placeholder.jpg",
+      image: "",
       services: []
     });
     setServicosData(newData);
@@ -210,7 +205,7 @@ export default function AdminLogin() {
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = identity?.currentUser()?.token?.access_token;
+    const token = window.netlifyIdentity?.currentUser()?.token?.access_token;
 
     setLoading(true);
     try {
@@ -260,7 +255,7 @@ export default function AdminLogin() {
           <div className="p-4 mt-auto">
             <button 
               onClick={() => {
-                if (identity && typeof identity.logout === 'function') identity.logout();
+                if (window.netlifyIdentity) window.netlifyIdentity.logout();
                 setIsLoggedIn(false);
               }} 
               className="w-full py-3 text-red-400 font-bold hover:bg-red-500/10 rounded-lg transition-all text-xs uppercase tracking-widest cursor-pointer"
@@ -294,7 +289,7 @@ export default function AdminLogin() {
                     <div className="bg-gray-900 p-6 flex justify-between items-center">
                        <div className="flex items-center gap-6">
                           <div className="relative group/img w-16 h-16 rounded-lg overflow-hidden border border-white/10 bg-black">
-                             <img src={cat.image} className="w-full h-full object-cover opacity-80" />
+                             <img src={cat.image || "/images/placeholder.jpg"} className="w-full h-full object-cover opacity-80" />
                              <label className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center cursor-pointer">
                                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                 <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, cIdx)} />

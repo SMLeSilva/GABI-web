@@ -2,7 +2,7 @@
   "categories": [
     {
       "title": "Manicure",
-      "image": "/images/manicure.jpg",
+      "image": "",
       "services": [
         {
           "name": "Cuticulagem",
@@ -24,7 +24,7 @@
     },
     {
       "title": "Pedicure",
-      "image": "/images/pedicure.jpg",
+      "image": "",
       "services": [
         {
           "name": "Cuticulagem",
@@ -42,7 +42,7 @@
     },
     {
       "title": "Cabeleireira",
-      "image": "/images/cabelo.jpg",
+      "image": "",
       "services": [
         {
           "name": "Corte Feminino",
@@ -60,7 +60,7 @@
     },
     {
       "title": "Cílios",
-      "image": "/images/cilios.jpg",
+      "image": "",
       "services": [
         {
           "name": "Extensão com Tufinho (Gatinho/Boneca)",
@@ -74,7 +74,7 @@
     },
     {
       "title": "Sobrancelha",
-      "image": "/images/sobrancelha.jpg",
+      "image": "",
       "services": [
         {
           "name": "Design sem Henna",
