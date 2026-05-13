@@ -4,44 +4,86 @@
       "title": "Manicure",
       "image": "/images/manicure.jpg",
       "services": [
-        { "name": "Cuticulagem", "price": "R$ 25,00" },
-        { "name": "Esmaltação Tradicional", "price": "R$ 30,00" },
-        { "name": "Esmaltação com Desenho Simples", "price": "R$ 40,00" },
-        { "name": "Alongamento: Unha Postiça Realista", "price": "R$ 80,00" }
+        {
+          "name": "Cuticulagem",
+          "price": "R$ 25,00"
+        },
+        {
+          "name": "Esmaltação Tradicional",
+          "price": "R$ 30,00"
+        },
+        {
+          "name": "Esmaltação com Desenho Simples",
+          "price": "R$ 40,00"
+        },
+        {
+          "name": "Alongamento: Unha Postiça Realista",
+          "price": "R$ 80,00"
+        }
       ]
     },
     {
       "title": "Pedicure",
       "image": "/images/pedicure.jpg",
       "services": [
-        { "name": "Cuticulagem", "price": "R$ 25,00" },
-        { "name": "Esmaltação Tradicional", "price": "R$ 30,00" },
-        { "name": "Esmaltação com Desenho Simples", "price": "R$ 40,00" }
+        {
+          "name": "Cuticulagem",
+          "price": "R$ 25,00"
+        },
+        {
+          "name": "Esmaltação Tradicional",
+          "price": "R$ 30,00"
+        },
+        {
+          "name": "Esmaltação com Desenho Simples",
+          "price": "R$ 40,00"
+        }
       ]
     },
     {
       "title": "Cabeleireira",
       "image": "/images/cabelo.jpg",
       "services": [
-        { "name": "Corte Feminino", "price": "R$ 60,00" },
-        { "name": "Escova", "price": "R$ 45,00" },
-        { "name": "Modelagem", "price": "R$ 55,00" }
+        {
+          "name": "Corte Feminino",
+          "price": "R$ 60,00"
+        },
+        {
+          "name": "Escova",
+          "price": "R$ 45,00"
+        },
+        {
+          "name": "Modelagem",
+          "price": "R$ 55,00"
+        }
       ]
     },
     {
       "title": "Cílios",
       "image": "/images/cilios.jpg",
       "services": [
-        { "name": "Extensão com Tufinho (Gatinho/Boneca)", "price": "R$ 120,00" },
-        { "name": "Manutenção de Cílios", "price": "R$ 60,00" }
+        {
+          "name": "Extensão com Tufinho (Gatinho/Boneca)",
+          "price": "R$ 120,00"
+        },
+        {
+          "name": "Manutenção de Cílios",
+          "price": "R$ 60,00"
+        }
       ]
     },
     {
       "title": "Sobrancelha",
       "image": "/images/sobrancelha.jpg",
       "services": [
-        { "name": "Design sem Henna", "price": "R$ 35,00" },
-        { "name": "Design com Henna", "price": "R$ 50,00" }
+        {
+          "name": "Design sem Henna",
+          "price": "R$ 35,00"
+        },
+        {
+          "name": "Design com Henna",
+          "price": "R$ 50,00"
+        }
       ]
     }
   ]

@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gabi Estética - Dashboard & Website
 
-## Getting Started
+Este projeto é uma plataforma dinâmica de gestão e presença online desenvolvida para a clínica **Gabi Estética**. O sistema permite a gestão completa de serviços, galeria de fotos e informações de contato através de um painel administrativo intuitivo e moderno.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### 🎓 Projeto de Extensão Universitária
+Este software foi desenvolvido como parte de um **Projeto de Extensão Universitária** vinculado ao programa **"Site Para Todos"**. 
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+O objetivo do programa é democratizar o acesso à tecnologia e presença digital para microempreendedores e profissionais autônomos, utilizando ferramentas de ponta para criar soluções profissionais, escaláveis e de fácil manutenção.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚀 Tecnologias Utilizadas
 
-## Learn More
+- **Framework:** [Next.js 14+](https://nextjs.org/) (App Router)
+- **Estilização:** [Tailwind CSS](https://tailwindcss.com/)
+- **Linguagem:** [TypeScript](https://www.typescriptlang.org/)
+- **Processamento de Imagens:** [Sharp](https://sharp.pixelplumbing.com/) (Otimização automática para WebP)
+- **Persistência:** Sistema de arquivos (JSON) para alta performance e portabilidade.
 
-To learn more about Next.js, take a look at the following resources:
+## ✨ Funcionalidades Principais
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **CMS Dinâmico:** Gerenciamento de categorias e serviços (adicionar, editar, remover) em tempo real.
+- **Painel Administrativo:** Interface premium protegida por autenticação simples.
+- **Upload Inteligente:** Sistema de upload que redimensiona e otimiza imagens automaticamente para garantir carregamento instantâneo.
+- **Configurações Gerais:** Edição de WhatsApp (com máscara automática), E-mail, Endereço e Redes Sociais (Instagram, Facebook, TikTok).
+- **Design Responsivo:** Interface adaptada para dispositivos móveis, tablets e desktops.
+- **SEO Otimizado:** Estrutura semântica focada em visibilidade nos mecanismos de busca.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🛠️ Como Executar o Projeto
 
-## Deploy on Vercel
+1. **Instalar dependências:**
+   ```bash
+   npm install
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. **Executar em modo de desenvolvimento:**
+   ```bash
+   npm run dev
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. **Gerar build de produção:**
+   ```bash
+   npm run build
+   ```
+
+4. **Acesso ao Painel:**
+   - Rota: `/admin`
+   - Credenciais padrão: `admin` / `admin`
+
+## 📁 Estrutura de Arquivos
+
+- `src/content/`: Contém os arquivos JSON que funcionam como o banco de dados do site.
+- `src/app/api/`: Endpoints para manipulação de arquivos e uploads.
+- `public/images/uploads/`: Local onde as imagens otimizadas são armazenadas.
+- `src/components/`: Componentes reutilizáveis da interface.
+
+---

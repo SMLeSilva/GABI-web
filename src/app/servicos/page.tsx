@@ -21,15 +21,22 @@ export default function Servicos() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {categories.map((category, idx: number) => (
             <div key={idx} className="bg-white rounded-xl shadow-xl shadow-fuchsia-900/5 overflow-hidden hover:shadow-2xl hover:shadow-fuchsia-900/10 transition-all duration-500 group border border-gray-100 flex flex-col">
-               <div className="h-72 overflow-hidden relative">
-                 <img 
-                   src={category.image} 
-                   alt={category.title} 
-                   className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
-                 />
-                 <div className="absolute inset-0 bg-gradient-to-t from-[#1a0b1a]/80 via-transparent to-transparent opacity-60 group-hover:opacity-90 transition-opacity"></div>
-                 <h2 className="absolute bottom-6 left-8 text-3xl font-black text-white tracking-tight">{category.title}</h2>
-               </div>
+                <div className="h-72 overflow-hidden relative bg-[#1a0b1a] flex items-center justify-center">
+                  {category.image ? (
+                    <img 
+                      src={category.image} 
+                      alt={category.title} 
+                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 opacity-20">
+                       <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center text-xl font-black text-white">G</div>
+                       <span className="text-[10px] font-bold text-white uppercase tracking-widest">Sem Imagem</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#1a0b1a]/80 via-transparent to-transparent opacity-60 group-hover:opacity-90 transition-opacity"></div>
+                  <h2 className="absolute bottom-6 left-8 text-3xl font-black text-white tracking-tight">{category.title}</h2>
+                </div>
                
                <div className="p-10 flex-1 flex flex-col">
                   <ul className="space-y-5 flex-1">

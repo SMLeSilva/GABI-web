@@ -5,12 +5,7 @@ export default function Home() {
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative h-[90vh] flex items-center overflow-hidden bg-[#1a0b1a]">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="/images/cabelo.jpg" 
-            alt="Gabi Estética Hero" 
-            className="w-full h-full object-cover opacity-40 scale-105"
-          />
+        <div className="absolute inset-0 z-0 bg-[#1a0b1a]">
           <div className="absolute inset-0 bg-gradient-to-r from-[#1a0b1a] via-[#1a0b1a]/80 to-transparent"></div>
         </div>
 
