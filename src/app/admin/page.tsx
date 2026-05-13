@@ -1,7 +1,9 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SiteConfig } from '@/lib/content';
-import netlifyIdentity from 'netlify-identity-widget';
+import * as netlifyIdentity from 'netlify-identity-widget';
 
 export default function AdminLogin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
