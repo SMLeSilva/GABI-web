@@ -15,42 +15,56 @@ export default function AdminLogin() {
 
   useEffect(() => {
     // Carregar Netlify Identity dinamicamente apenas no cliente
-    const netlifyIdentity = require('netlify-identity-widget');
-    setIdentity(netlifyIdentity);
+    try {
+      const netlifyLib = require('netlify-identity-widget');
+      // Algumas versões exportam como .default, outras direto no objeto
+      const netlifyIdentity = netlifyLib.default || netlifyLib;
+      
+      if (netlifyIdentity && typeof netlifyIdentity.init === 'function') {
+        setIdentity(netlifyIdentity);
 
-    netlifyIdentity.init({
-      logo: false
-    });
+        netlifyIdentity.init({
+          logo: false
+        });
 
-    const currentUser = netlifyIdentity.currentUser();
-    if (currentUser) {
-      setIsLoggedIn(true);
-      setUser(currentUser);
+        const currentUser = netlifyIdentity.currentUser();
+        if (currentUser) {
+          setIsLoggedIn(true);
+          setUser(currentUser);
+        }
+
+        netlifyIdentity.on('login', (loggedInUser: any) => {
+          setIsLoggedIn(true);
+          setUser(loggedInUser);
+          netlifyIdentity.close();
+        });
+
+        netlifyIdentity.on('logout', () => {
+          setIsLoggedIn(false);
+          setUser(null);
+        });
+      }
+    } catch (err) {
+      console.error("Erro ao carregar Netlify Identity:", err);
     }
 
-    netlifyIdentity.on('login', (loggedInUser: any) => {
-      setIsLoggedIn(true);
-      setUser(loggedInUser);
-      netlifyIdentity.close();
-    });
-
-    netlifyIdentity.on('logout', () => {
-      setIsLoggedIn(false);
-      setUser(null);
-    });
-
-    // Cleanup para evitar múltiplos registros de eventos
     return () => {
-      netlifyIdentity.off('login');
-      netlifyIdentity.off('logout');
+      try {
+        const netlifyLib = require('netlify-identity-widget');
+        const netlifyIdentity = netlifyLib.default || netlifyLib;
+        if (netlifyIdentity && typeof netlifyIdentity.off === 'function') {
+          netlifyIdentity.off('login');
+          netlifyIdentity.off('logout');
+        }
+      } catch (e) {}
     };
   }, []);
 
   const openNetlifyLogin = () => {
-    if (identity) {
+    if (identity && typeof identity.open === 'function') {
       identity.open();
     } else {
-      alert("Sistema de login ainda carregando. Tente novamente em um segundo.");
+      alert("O sistema de login do Netlify está sendo carregado. Por favor, aguarde alguns segundos ou use o login local se disponível.");
     }
   };
 
@@ -246,7 +260,7 @@ export default function AdminLogin() {
           <div className="p-4 mt-auto">
             <button 
               onClick={() => {
-                if (identity) identity.logout();
+                if (identity && typeof identity.logout === 'function') identity.logout();
                 setIsLoggedIn(false);
               }} 
               className="w-full py-3 text-red-400 font-bold hover:bg-red-500/10 rounded-lg transition-all text-xs uppercase tracking-widest cursor-pointer"
