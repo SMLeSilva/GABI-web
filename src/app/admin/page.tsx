@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SiteConfig } from '@/lib/content';
-import * as netlifyIdentity from 'netlify-identity-widget';
 
 export default function AdminLogin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -12,36 +11,47 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState('gerais');
   const [loading, setLoading] = useState(false);
+  const [identity, setIdentity] = useState<any>(null);
 
   useEffect(() => {
-    // Inicializar Netlify Identity
-    if (typeof window !== 'undefined') {
-      netlifyIdentity.init({
-        logo: false // Opcional
-      });
+    // Carregar Netlify Identity dinamicamente apenas no cliente
+    const netlifyIdentity = require('netlify-identity-widget');
+    setIdentity(netlifyIdentity);
 
-      // Se já estiver logado no Netlify
-      const currentUser = netlifyIdentity.currentUser();
-      if (currentUser) {
-        setIsLoggedIn(true);
-        setUser(currentUser);
-      }
+    netlifyIdentity.init({
+      logo: false
+    });
 
-      netlifyIdentity.on('login', (user) => {
-        setIsLoggedIn(true);
-        setUser(user);
-        netlifyIdentity.close();
-      });
-
-      netlifyIdentity.on('logout', () => {
-        setIsLoggedIn(false);
-        setUser(null);
-      });
+    const currentUser = netlifyIdentity.currentUser();
+    if (currentUser) {
+      setIsLoggedIn(true);
+      setUser(currentUser);
     }
+
+    netlifyIdentity.on('login', (loggedInUser: any) => {
+      setIsLoggedIn(true);
+      setUser(loggedInUser);
+      netlifyIdentity.close();
+    });
+
+    netlifyIdentity.on('logout', () => {
+      setIsLoggedIn(false);
+      setUser(null);
+    });
+
+    // Cleanup para evitar múltiplos registros de eventos
+    return () => {
+      netlifyIdentity.off('login');
+      netlifyIdentity.off('logout');
+    };
   }, []);
 
   const openNetlifyLogin = () => {
-    netlifyIdentity.open();
+    if (identity) {
+      identity.open();
+    } else {
+      alert("Sistema de login ainda carregando. Tente novamente em um segundo.");
+    }
   };
 
   // DATA STATE
@@ -97,7 +107,6 @@ export default function AdminLogin() {
   };
 
   const handleSave = async (type: string, data: any) => {
-    // Validações antes de salvar
     if (type === 'config') {
       if (!validateEmail(data.email)) {
         alert("E-mail inválido.");
@@ -110,7 +119,7 @@ export default function AdminLogin() {
       }
     }
 
-    const token = netlifyIdentity.currentUser()?.token?.access_token;
+    const token = identity?.currentUser()?.token?.access_token;
 
     setLoading(true);
     try {
@@ -134,7 +143,6 @@ export default function AdminLogin() {
     }
   };
 
-  // CATEGORY LOGIC
   const addCategory = () => {
     const title = prompt("Nome da Nova Categoria (ex: Massagens):");
     if (!title) return;
@@ -154,7 +162,6 @@ export default function AdminLogin() {
     setServicosData(newData);
   };
 
-  // SERVICE LOGIC
   const updateServiceField = (catIdx: number, sIdx: number, field: string, value: string) => {
     const newData = { ...servicosData };
     newData.categories[catIdx].services[sIdx][field] = value;
@@ -175,7 +182,6 @@ export default function AdminLogin() {
     setServicosData(newData);
   };
 
-  // PHOTO LOGIC
   const removePhoto = (idx: number) => {
     if (!confirm("Remover esta foto?")) return;
     const newData = { ...galeriaData };
@@ -190,7 +196,7 @@ export default function AdminLogin() {
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = netlifyIdentity.currentUser()?.token?.access_token;
+    const token = identity?.currentUser()?.token?.access_token;
 
     setLoading(true);
     try {
@@ -221,7 +227,6 @@ export default function AdminLogin() {
   if (isLoggedIn && servicosData && galeriaData && configData) {
     return (
       <div className="min-h-screen bg-[#faf9fa] flex flex-col md:flex-row font-sans text-gray-900">
-        {/* Sidebar */}
         <aside className="w-full md:w-72 bg-[#1a0b1a] text-white flex flex-col shadow-xl z-20">
           <div className="p-8 text-center border-b border-white/5">
             <div className="w-12 h-12 bg-primary mx-auto rounded-lg flex items-center justify-center text-xl font-black mb-4">G</div>
@@ -241,7 +246,7 @@ export default function AdminLogin() {
           <div className="p-4 mt-auto">
             <button 
               onClick={() => {
-                if (user) netlifyIdentity.logout();
+                if (identity) identity.logout();
                 setIsLoggedIn(false);
               }} 
               className="w-full py-3 text-red-400 font-bold hover:bg-red-500/10 rounded-lg transition-all text-xs uppercase tracking-widest cursor-pointer"
@@ -251,11 +256,8 @@ export default function AdminLogin() {
           </div>
         </aside>
 
-        {/* Content */}
         <main className="flex-1 p-6 md:p-10 overflow-y-auto">
           <div className="max-w-6xl mx-auto">
-            
-            {/* Action Bar */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
                <div>
                   <h2 className="text-3xl font-black tracking-tight uppercase">{activeTab === 'gerais' ? 'Site Geral' : activeTab === 'servicos' ? 'Nossos Serviços' : 'Galeria Real'}</h2>
@@ -271,14 +273,12 @@ export default function AdminLogin() {
                </div>
             </div>
 
-            {/* TAB: SERVIÇOS */}
             {activeTab === 'servicos' && servicosData && (
               <div className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
                 {servicosData.categories.map((cat: any, cIdx: number) => (
                   <div key={cIdx} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden group">
                     <div className="bg-gray-900 p-6 flex justify-between items-center">
                        <div className="flex items-center gap-6">
-                          {/* Preview da Imagem */}
                           <div className="relative group/img w-16 h-16 rounded-lg overflow-hidden border border-white/10 bg-black">
                              <img src={cat.image} className="w-full h-full object-cover opacity-80" />
                              <label className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center cursor-pointer">
@@ -286,62 +286,23 @@ export default function AdminLogin() {
                                 <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, cIdx)} />
                              </label>
                           </div>
-
-                          <input 
-                            type="text" 
-                            className="bg-transparent border-none outline-none text-xl font-black text-white w-auto focus:text-primary transition-colors cursor-text" 
-                            value={cat.title} 
-                            onChange={(e) => {
-                              const newData = {...servicosData};
-                              newData.categories[cIdx].title = e.target.value;
-                              setServicosData(newData);
-                            }}
-                          />
+                          <input type="text" className="bg-transparent border-none outline-none text-xl font-black text-white w-auto focus:text-primary transition-colors cursor-text" value={cat.title} onChange={(e) => { const newData = {...servicosData}; newData.categories[cIdx].title = e.target.value; setServicosData(newData); }} />
                        </div>
-                       <button onClick={() => removeCategory(cIdx)} className="text-white/40 hover:text-red-400 transition-colors cursor-pointer">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                       </button>
+                       <button onClick={() => removeCategory(cIdx)} className="text-white/40 hover:text-red-400 transition-colors cursor-pointer"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                     </div>
-
                     <div className="p-6">
                        <div className="grid grid-cols-1 gap-2">
                           {cat.services.map((s: any, sIdx: number) => (
                             <div key={sIdx} className="flex items-center gap-4 bg-gray-50/50 p-3 rounded-lg hover:bg-fuchsia-50 transition-all border border-transparent">
-                               <div className="flex-1">
-                                  <input 
-                                    type="text" 
-                                    className="w-full bg-transparent border-none outline-none font-bold text-gray-700 text-sm cursor-text" 
-                                    value={s.name} 
-                                    onChange={(e) => updateServiceField(cIdx, sIdx, 'name', e.target.value)} 
-                                  />
-                               </div>
-                               <div className="flex items-center gap-3">
-                                  <span className="text-[10px] font-black text-primary">R$</span>
-                                  <input 
-                                    type="text" 
-                                    className="w-20 bg-white p-2 rounded-md border border-gray-100 font-black text-primary text-center text-sm cursor-text" 
-                                    value={s.price.replace('R$', '').trim()} 
-                                    onChange={(e) => updateServiceField(cIdx, sIdx, 'price', `R$ ${e.target.value}`)} 
-                                  />
-                                  <button onClick={() => removeService(cIdx, sIdx)} className="text-gray-300 hover:text-red-500 transition-colors p-1 cursor-pointer">
-                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                                  </button>
-                               </div>
+                               <div className="flex-1"><input type="text" className="w-full bg-transparent border-none outline-none font-bold text-gray-700 text-sm cursor-text" value={s.name} onChange={(e) => updateServiceField(cIdx, sIdx, 'name', e.target.value)} /></div>
+                               <div className="flex items-center gap-3"><span className="text-[10px] font-black text-primary">R$</span><input type="text" className="w-20 bg-white p-2 rounded-md border border-gray-100 font-black text-primary text-center text-sm cursor-text" value={s.price.replace('R$', '').trim()} onChange={(e) => updateServiceField(cIdx, sIdx, 'price', `R$ ${e.target.value}`)} /><button onClick={() => removeService(cIdx, sIdx)} className="text-gray-300 hover:text-red-500 transition-colors p-1 cursor-pointer"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div>
                             </div>
                           ))}
                        </div>
-                       
                        <div className="mt-4 flex gap-3 p-3 bg-primary/5 rounded-lg border border-dashed border-primary/20">
                           <input id={`new-name-${cIdx}`} type="text" placeholder="Novo serviço..." className="flex-1 bg-transparent outline-none text-xs font-bold cursor-text" />
                           <input id={`new-price-${cIdx}`} type="text" placeholder="0,00" className="w-16 bg-transparent outline-none text-xs font-black text-primary text-center cursor-text" />
-                          <button onClick={() => {
-                            const nInput = document.getElementById(`new-name-${cIdx}`) as HTMLInputElement;
-                            const pInput = document.getElementById(`new-price-${cIdx}`) as HTMLInputElement;
-                            if(nInput.value && pInput.value) {
-                              addService(cIdx, nInput.value, `R$ ${pInput.value}`);
-                              nInput.value = ''; pInput.value = '';
-                            }
-                          }} className="bg-primary text-white font-black px-4 py-2 rounded-md text-[10px] uppercase tracking-widest cursor-pointer">OK</button>
+                          <button onClick={() => { const nInput = document.getElementById(`new-name-${cIdx}`) as HTMLInputElement; const pInput = document.getElementById(`new-price-${cIdx}`) as HTMLInputElement; if(nInput.value && pInput.value) { addService(cIdx, nInput.value, `R$ ${pInput.value}`); nInput.value = ''; pInput.value = ''; } }} className="bg-primary text-white font-black px-4 py-2 rounded-md text-[10px] uppercase tracking-widest cursor-pointer">OK</button>
                        </div>
                     </div>
                   </div>
@@ -349,56 +310,23 @@ export default function AdminLogin() {
               </div>
             )}
 
-            {/* TAB: GERAIS */}
             {activeTab === 'gerais' && configData && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
-                 {/* Coluna 1: Contatos */}
                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
                     <h3 className="text-sm font-black uppercase tracking-widest text-primary">Contatos</h3>
                     <div className="space-y-3">
-                       <div>
-                         <label className="text-[10px] font-bold text-gray-400 block mb-1">WhatsApp</label>
-                         <input 
-                          type="text" 
-                          className="w-full p-3 bg-gray-50 border rounded-lg font-bold text-sm cursor-text" 
-                          value={configData.whatsapp} 
-                          onChange={(e) => setConfigData({...configData, whatsapp: formatWhatsApp(e.target.value)})} 
-                          placeholder="(00) 00000-0000"
-                        />
-                       </div>
-                       <div>
-                         <label className="text-[10px] font-bold text-gray-400 block mb-1">E-mail</label>
-                         <input 
-                          type="text" 
-                          className="w-full p-3 bg-gray-50 border rounded-lg font-bold text-sm cursor-text" 
-                          value={configData.email} 
-                          onChange={(e) => setConfigData({...configData, email: e.target.value})} 
-                          placeholder="contato@exemplo.com"
-                        />
-                       </div>
+                       <div><label className="text-[10px] font-bold text-gray-400 block mb-1">WhatsApp</label><input type="text" className="w-full p-3 bg-gray-50 border rounded-lg font-bold text-sm cursor-text" value={configData.whatsapp} onChange={(e) => setConfigData({...configData, whatsapp: formatWhatsApp(e.target.value)})} placeholder="(00) 00000-0000" /></div>
+                       <div><label className="text-[10px] font-bold text-gray-400 block mb-1">E-mail</label><input type="text" className="w-full p-3 bg-gray-50 border rounded-lg font-bold text-sm cursor-text" value={configData.email} onChange={(e) => setConfigData({...configData, email: e.target.value})} placeholder="contato@exemplo.com" /></div>
                     </div>
                  </div>
-
-                 {/* Coluna 2: Redes Sociais */}
                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
                     <h3 className="text-sm font-black uppercase tracking-widest text-primary">Redes Sociais</h3>
                     <div className="space-y-3">
-                       <div>
-                         <label className="text-[10px] font-bold text-gray-400 block mb-1">Instagram (@usuario)</label>
-                         <input type="text" className="w-full p-3 bg-gray-50 border rounded-lg font-bold text-sm cursor-text" value={configData.instagram} onChange={(e) => setConfigData({...configData, instagram: e.target.value})} />
-                       </div>
-                       <div>
-                         <label className="text-[10px] font-bold text-gray-400 block mb-1">Facebook (link completo)</label>
-                         <input type="text" className="w-full p-3 bg-gray-50 border rounded-lg font-bold text-sm cursor-text" value={configData.facebook} onChange={(e) => setConfigData({...configData, facebook: e.target.value})} />
-                       </div>
-                       <div>
-                         <label className="text-[10px] font-bold text-gray-400 block mb-1">TikTok (@usuario)</label>
-                         <input type="text" className="w-full p-3 bg-gray-50 border rounded-lg font-bold text-sm cursor-text" value={configData.tiktok} onChange={(e) => setConfigData({...configData, tiktok: e.target.value})} />
-                       </div>
+                       <div><label className="text-[10px] font-bold text-gray-400 block mb-1">Instagram (@usuario)</label><input type="text" className="w-full p-3 bg-gray-50 border rounded-lg font-bold text-sm cursor-text" value={configData.instagram} onChange={(e) => setConfigData({...configData, instagram: e.target.value})} /></div>
+                       <div><label className="text-[10px] font-bold text-gray-400 block mb-1">Facebook (link completo)</label><input type="text" className="w-full p-3 bg-gray-50 border rounded-lg font-bold text-sm cursor-text" value={configData.facebook} onChange={(e) => setConfigData({...configData, facebook: e.target.value})} /></div>
+                       <div><label className="text-[10px] font-bold text-gray-400 block mb-1">TikTok (@usuario)</label><input type="text" className="w-full p-3 bg-gray-50 border rounded-lg font-bold text-sm cursor-text" value={configData.tiktok} onChange={(e) => setConfigData({...configData, tiktok: e.target.value})} /></div>
                     </div>
                  </div>
-
-                 {/* Coluna 3: Endereço */}
                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
                     <h3 className="text-sm font-black uppercase tracking-widest text-primary">Endereço</h3>
                     <textarea className="w-full p-3 bg-gray-50 border rounded-lg font-bold text-sm resize-none cursor-text" rows={7} value={configData.address} onChange={(e) => setConfigData({...configData, address: e.target.value})} />
@@ -406,7 +334,6 @@ export default function AdminLogin() {
               </div>
             )}
 
-            {/* TAB: GALERIA */}
             {activeTab === 'galeria' && galeriaData && (
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 animate-in fade-in duration-500">
                 {galeriaData.images.map((img: any, idx: number) => (
@@ -419,7 +346,6 @@ export default function AdminLogin() {
                 ))}
               </div>
             )}
-
           </div>
         </main>
       </div>
@@ -432,18 +358,11 @@ export default function AdminLogin() {
         <div className="w-16 h-16 bg-primary mx-auto rounded-xl mb-6 flex items-center justify-center text-2xl font-black text-white">G</div>
         <h1 className="text-2xl font-black text-gray-900 mb-1 uppercase tracking-tight">Admin</h1>
         <p className="text-gray-400 mb-8 text-[10px] font-bold uppercase tracking-widest">Escolha o método de acesso</p>
-        
         <div className="space-y-4">
-          {/* Netlify Login (Principal para Produção) */}
-          <button 
-            onClick={openNetlifyLogin}
-            className="w-full py-4 bg-primary text-white font-black rounded-xl shadow-lg hover:bg-fuchsia-600 transition-all uppercase tracking-widest text-xs cursor-pointer flex items-center justify-center gap-3"
-          >
+          <button onClick={openNetlifyLogin} className="w-full py-4 bg-primary text-white font-black rounded-xl shadow-lg hover:bg-fuchsia-600 transition-all uppercase tracking-widest text-xs cursor-pointer flex items-center justify-center gap-3">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 18c-3.314 0-6-2.686-6-6s2.686-6 6-6 6 2.686 6 6-2.686 6-6 6z"/></svg>
             Entrar com Netlify
           </button>
-
-          {/* Login Convencional (Apenas visível localmente para desenvolvimento) */}
           {process.env.NODE_ENV === 'development' && (
             <>
               <div className="flex items-center gap-4 my-6">
@@ -451,7 +370,6 @@ export default function AdminLogin() {
                 <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">acesso local (dev)</span>
                 <div className="flex-1 h-px bg-gray-100"></div>
               </div>
-
               <form onSubmit={handleLogin} className="space-y-3">
                 <input type="text" className="w-full p-4 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-1 focus:ring-primary text-sm cursor-text" placeholder="usuário" value={username} onChange={(e) => setUsername(e.target.value)} />
                 <input type="password" className="w-full p-4 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-1 focus:ring-primary text-sm cursor-text" placeholder="senha" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -460,7 +378,6 @@ export default function AdminLogin() {
             </>
           )}
         </div>
-
         <Link href="/" className="inline-block mt-8 text-[10px] font-black text-gray-300 hover:text-primary uppercase tracking-widest transition-colors cursor-pointer">← Voltar ao site</Link>
       </div>
     </div>
