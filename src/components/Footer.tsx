@@ -15,11 +15,13 @@ export default function Footer() {
   }, []);
 
   // Fallback se ainda estiver carregando
-  const currentConfig = config || {
+  const currentConfig: SiteConfig = config || {
     whatsapp: "(19) 99251-9060",
     email: "contato.gabiestetica@gmail.com",
     address: "Rua República Dominicana, 100\nPq. Res. Belinha Ometto\nLimeira - SP | 13483-514",
-    instagram: "_gabihh_silva_"
+    instagram: "_gabihh_silva_",
+    facebook: "",
+    tiktok: ""
   };
 
   return (
