@@ -15,10 +15,8 @@ export default function AdminLogin() {
   const [loginLoading, setLoginLoading] = useState(false);
 
   // Removida a verificação automática de sessão para sempre exigir senha ao abrir a página
-  // Mas mantemos a verificação se o usuário ACABOU de aceitar um convite ou recuperar senha
   useEffect(() => {
-    // Se houver um token de confirmação ou recuperação na URL, o widget (que adicionei no layout) 
-    // vai abrir automaticamente para o usuário definir a senha.
+    // Verificação silenciosa apenas para limpar estados se necessário
   }, []);
 
   // DATA STATE
@@ -61,7 +59,8 @@ export default function AdminLogin() {
     // LOGIN PRODUÇÃO (Netlify Identity)
     setLoginLoading(true);
     try {
-      const loggedUser = await login(username, password, true); // O 'true' ajuda a persistir se necessário, mas o login será manual
+      // Corrigido: Removido o terceiro argumento não suportado
+      const loggedUser = await login(username, password);
       if (loggedUser) {
         setIsLoggedIn(true);
         setUser(loggedUser);
@@ -77,13 +76,12 @@ export default function AdminLogin() {
   const handleLogout = async () => {
     try {
       await logout();
-      // Limpeza agressiva de qualquer resquício de sessão no navegador
       localStorage.clear();
       sessionStorage.clear();
     } catch (e) {}
     setIsLoggedIn(false);
     setUser(null);
-    window.location.reload(); // Recarrega para garantir estado limpo
+    window.location.reload();
   };
 
   const validateEmail = (email: string) => {
@@ -114,7 +112,8 @@ export default function AdminLogin() {
       }
     }
 
-    const token = user?.token?.access_token || getUser()?.token?.access_token;
+    // Corrigido: Usar o estado 'user' que já contém o token
+    const token = user?.token?.access_token;
 
     setLoading(true);
     try {
@@ -191,7 +190,8 @@ export default function AdminLogin() {
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = user?.token?.access_token || getUser()?.token?.access_token;
+    // Corrigido: Usar o estado 'user'
+    const token = user?.token?.access_token;
 
     setLoading(true);
     try {
