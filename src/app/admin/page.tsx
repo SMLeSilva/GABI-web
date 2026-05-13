@@ -53,6 +53,7 @@ export default function AdminLogin() {
     setLoginLoading(true);
     try {
       const loggedUser = await login(username, password);
+      console.log("Login realizado. Objeto user:", loggedUser);
       if (loggedUser) {
         setIsLoggedIn(true);
         setUser(loggedUser);
@@ -91,6 +92,32 @@ export default function AdminLogin() {
     return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
   };
 
+  const getValidToken = async () => {
+    // Tenta pegar de 4 lugares diferentes
+    const currentUser = user || getUser();
+    if (!currentUser) return null;
+
+    try {
+      // 1. Tenta o método oficial JWT (se for uma instância da classe User)
+      if (typeof currentUser.jwt === 'function') {
+        return await currentUser.jwt();
+      }
+      // 2. Tenta ler do objeto de token direto
+      if (currentUser.token?.access_token) {
+        return currentUser.token.access_token;
+      }
+      // 3. Tenta ler de uma propriedade aninhada comum
+      if (currentUser.auth?.token) {
+        return currentUser.auth.token;
+      }
+      // 4. Último recurso: Ver se o token está "solto" no objeto
+      if (typeof currentUser === 'string') return currentUser;
+    } catch (e) {
+      console.error("Erro ao extrair token:", e);
+    }
+    return null;
+  };
+
   const handleSave = async (type: string, data: any) => {
     if (type === 'config') {
       if (!validateEmail(data.email)) {
@@ -106,16 +133,14 @@ export default function AdminLogin() {
 
     setLoading(true);
     try {
-      const currentUser = user || getUser();
-      let token = "";
-      if (currentUser && typeof currentUser.jwt === 'function') {
-        token = await currentUser.jwt();
-      } else if (currentUser?.token?.access_token) {
-        token = currentUser.token.access_token;
-      }
+      const token = await getValidToken();
+      const tokenLen = token ? token.length : 0;
 
-      // DIAGNÓSTICO NO NAVEGADOR
-      console.log("Tentando salvar. Tamanho do token no navegador:", token?.length || 0);
+      if (process.env.NODE_ENV === 'production' && tokenLen < 10) {
+        alert(`Erro Crítico: O painel não conseguiu gerar o seu token de segurança (Tamanho: ${tokenLen}). \n\nPor favor, saia do painel, feche a aba e tente logar novamente.`);
+        setLoading(false);
+        return;
+      }
 
       const res = await fetch('/api/admin/content', {
         method: 'POST',
@@ -131,7 +156,7 @@ export default function AdminLogin() {
       if (res.ok) {
         alert(`${type.charAt(0).toUpperCase() + type.slice(1)} salvo com sucesso!`);
       } else {
-        alert(`Erro ao salvar. \nServidor recebeu token de tamanho: ${token ? token.length : 0} \nResposta do servidor: ${result.error || "Erro desconhecido"}`);
+        alert(`Erro ao salvar. \n\nToken enviado pelo navegador: ${tokenLen} caracteres. \nErro do servidor: ${result.error || "Erro desconhecido"}`);
       }
     } catch (error) {
       console.error("Erro ao salvar:", error);
@@ -196,13 +221,7 @@ export default function AdminLogin() {
 
     setLoading(true);
     try {
-      const currentUser = user || getUser();
-      let token = "";
-      if (currentUser && typeof currentUser.jwt === 'function') {
-        token = await currentUser.jwt();
-      } else if (currentUser?.token?.access_token) {
-        token = currentUser.token.access_token;
-      }
+      const token = await getValidToken();
 
       const res = await fetch('/api/admin/upload', {
         method: 'POST',
