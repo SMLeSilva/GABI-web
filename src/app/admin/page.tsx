@@ -1,15 +1,46 @@
-"use client";
-
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SiteConfig } from '@/lib/content';
+import netlifyIdentity from 'netlify-identity-widget';
 
 export default function AdminLogin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState('gerais');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Inicializar Netlify Identity
+    if (typeof window !== 'undefined') {
+      netlifyIdentity.init({
+        logo: false // Opcional
+      });
+
+      // Se já estiver logado no Netlify
+      const currentUser = netlifyIdentity.currentUser();
+      if (currentUser) {
+        setIsLoggedIn(true);
+        setUser(currentUser);
+      }
+
+      netlifyIdentity.on('login', (user) => {
+        setIsLoggedIn(true);
+        setUser(user);
+        netlifyIdentity.close();
+      });
+
+      netlifyIdentity.on('logout', () => {
+        setIsLoggedIn(false);
+        setUser(null);
+      });
+    }
+  }, []);
+
+  const openNetlifyLogin = () => {
+    netlifyIdentity.open();
+  };
 
   // DATA STATE
   const [servicosData, setServicosData] = useState<any>(null);
@@ -183,6 +214,12 @@ export default function AdminLogin() {
           <div className="p-8 text-center border-b border-white/5">
             <div className="w-12 h-12 bg-primary mx-auto rounded-lg flex items-center justify-center text-xl font-black mb-4">G</div>
             <h1 className="font-bold text-base uppercase tracking-widest">Gabi Estética</h1>
+            {user && (
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-[9px] font-black text-fuchsia-200/50 uppercase tracking-tighter truncate max-w-[120px]">{user.email}</span>
+              </div>
+            )}
           </div>
           <nav className="flex-1 p-4 space-y-1 mt-4">
              <button onClick={() => setActiveTab('gerais')} className={`w-full flex items-center gap-4 px-5 py-3 rounded-lg transition-all font-bold text-xs uppercase tracking-widest cursor-pointer ${activeTab === 'gerais' ? 'bg-primary text-white shadow-md' : 'text-fuchsia-100/40 hover:bg-white/5'}`}>Configurações</button>
@@ -190,7 +227,15 @@ export default function AdminLogin() {
              <button onClick={() => setActiveTab('galeria')} className={`w-full flex items-center gap-4 px-5 py-3 rounded-lg transition-all font-bold text-xs uppercase tracking-widest cursor-pointer ${activeTab === 'galeria' ? 'bg-primary text-white shadow-md' : 'text-fuchsia-100/40 hover:bg-white/5'}`}>Galeria</button>
           </nav>
           <div className="p-4 mt-auto">
-            <button onClick={() => setIsLoggedIn(false)} className="w-full py-3 text-red-400 font-bold hover:bg-red-500/10 rounded-lg transition-all text-xs uppercase tracking-widest cursor-pointer">Sair</button>
+            <button 
+              onClick={() => {
+                if (user) netlifyIdentity.logout();
+                setIsLoggedIn(false);
+              }} 
+              className="w-full py-3 text-red-400 font-bold hover:bg-red-500/10 rounded-lg transition-all text-xs uppercase tracking-widest cursor-pointer"
+            >
+              Sair do Painel
+            </button>
           </div>
         </aside>
 
@@ -374,13 +419,33 @@ export default function AdminLogin() {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-10 text-center">
         <div className="w-16 h-16 bg-primary mx-auto rounded-xl mb-6 flex items-center justify-center text-2xl font-black text-white">G</div>
         <h1 className="text-2xl font-black text-gray-900 mb-1 uppercase tracking-tight">Admin</h1>
-        <p className="text-gray-400 mb-8 text-[10px] font-bold uppercase tracking-widest">Acesso Restrito</p>
-        <form onSubmit={handleLogin} className="space-y-3">
-          <input type="text" className="w-full p-4 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-1 focus:ring-primary cursor-text" placeholder="admin" value={username} onChange={(e) => setUsername(e.target.value)} required />
-          <input type="password" className="w-full p-4 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-1 focus:ring-primary cursor-text" placeholder="admin" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          <button type="submit" className="w-full py-4 bg-[#1a0b1a] text-white font-black rounded-xl shadow-lg hover:bg-primary transition-all uppercase tracking-widest text-xs cursor-pointer">Entrar</button>
-        </form>
-        <Link href="/" className="inline-block mt-6 text-[10px] font-black text-gray-300 hover:text-primary uppercase tracking-widest transition-colors cursor-pointer">← Voltar ao site</Link>
+        <p className="text-gray-400 mb-8 text-[10px] font-bold uppercase tracking-widest">Escolha o método de acesso</p>
+        
+        <div className="space-y-4">
+          {/* Netlify Login (Principal para Produção) */}
+          <button 
+            onClick={openNetlifyLogin}
+            className="w-full py-4 bg-primary text-white font-black rounded-xl shadow-lg hover:bg-fuchsia-600 transition-all uppercase tracking-widest text-xs cursor-pointer flex items-center justify-center gap-3"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 18c-3.314 0-6-2.686-6-6s2.686-6 6-6 6 2.686 6 6-2.686 6-6 6z"/></svg>
+            Entrar com Netlify
+          </button>
+
+          <div className="flex items-center gap-4 my-6">
+            <div className="flex-1 h-px bg-gray-100"></div>
+            <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">ou acesso local</span>
+            <div className="flex-1 h-px bg-gray-100"></div>
+          </div>
+
+          {/* Login Convencional (Fallback) */}
+          <form onSubmit={handleLogin} className="space-y-3">
+            <input type="text" className="w-full p-4 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-1 focus:ring-primary text-sm cursor-text" placeholder="usuário" value={username} onChange={(e) => setUsername(e.target.value)} />
+            <input type="password" className="w-full p-4 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-1 focus:ring-primary text-sm cursor-text" placeholder="senha" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <button type="submit" className="w-full py-4 bg-gray-900 text-white font-black rounded-xl shadow-lg hover:bg-black transition-all uppercase tracking-widest text-xs cursor-pointer">Acesso Admin</button>
+          </form>
+        </div>
+
+        <Link href="/" className="inline-block mt-8 text-[10px] font-black text-gray-300 hover:text-primary uppercase tracking-widest transition-colors cursor-pointer">← Voltar ao site</Link>
       </div>
     </div>
   );
