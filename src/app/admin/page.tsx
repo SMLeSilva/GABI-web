@@ -431,18 +431,22 @@ export default function AdminLogin() {
             Entrar com Netlify
           </button>
 
-          <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-gray-100"></div>
-            <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">ou acesso local</span>
-            <div className="flex-1 h-px bg-gray-100"></div>
-          </div>
+          {/* Login Convencional (Apenas visível localmente para desenvolvimento) */}
+          {process.env.NODE_ENV === 'development' && (
+            <>
+              <div className="flex items-center gap-4 my-6">
+                <div className="flex-1 h-px bg-gray-100"></div>
+                <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">acesso local (dev)</span>
+                <div className="flex-1 h-px bg-gray-100"></div>
+              </div>
 
-          {/* Login Convencional (Fallback) */}
-          <form onSubmit={handleLogin} className="space-y-3">
-            <input type="text" className="w-full p-4 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-1 focus:ring-primary text-sm cursor-text" placeholder="usuário" value={username} onChange={(e) => setUsername(e.target.value)} />
-            <input type="password" className="w-full p-4 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-1 focus:ring-primary text-sm cursor-text" placeholder="senha" value={password} onChange={(e) => setPassword(e.target.value)} />
-            <button type="submit" className="w-full py-4 bg-gray-900 text-white font-black rounded-xl shadow-lg hover:bg-black transition-all uppercase tracking-widest text-xs cursor-pointer">Acesso Admin</button>
-          </form>
+              <form onSubmit={handleLogin} className="space-y-3">
+                <input type="text" className="w-full p-4 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-1 focus:ring-primary text-sm cursor-text" placeholder="usuário" value={username} onChange={(e) => setUsername(e.target.value)} />
+                <input type="password" className="w-full p-4 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-1 focus:ring-primary text-sm cursor-text" placeholder="senha" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <button type="submit" className="w-full py-4 bg-gray-900 text-white font-black rounded-xl shadow-lg hover:bg-black transition-all uppercase tracking-widest text-xs cursor-pointer">Acesso Admin Local</button>
+              </form>
+            </>
+          )}
         </div>
 
         <Link href="/" className="inline-block mt-8 text-[10px] font-black text-gray-300 hover:text-primary uppercase tracking-widest transition-colors cursor-pointer">← Voltar ao site</Link>
