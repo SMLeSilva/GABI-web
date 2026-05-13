@@ -53,8 +53,12 @@ export default function AdminLogin() {
     setLoginLoading(true);
     try {
       const loggedUser = await login(username, password);
-      console.log("Login realizado. Objeto user:", loggedUser);
       if (loggedUser) {
+        // BRUTE FORCE: Salvar o token manualmente
+        const token = loggedUser.token?.access_token || loggedUser.access_token;
+        if (token) {
+          localStorage.setItem('netlify_access_token', token);
+        }
         setIsLoggedIn(true);
         setUser(loggedUser);
       }
@@ -93,28 +97,21 @@ export default function AdminLogin() {
   };
 
   const getValidToken = async () => {
-    // Tenta pegar de 4 lugares diferentes
+    // 1. Tenta ler do "cofre" manual (Brute Force)
+    const manualToken = localStorage.getItem('netlify_access_token');
+    if (manualToken && manualToken.length > 20) return manualToken;
+
+    // 2. Tenta os métodos padrões
     const currentUser = user || getUser();
     if (!currentUser) return null;
 
     try {
-      // 1. Tenta o método oficial JWT (se for uma instância da classe User)
       if (typeof currentUser.jwt === 'function') {
         return await currentUser.jwt();
       }
-      // 2. Tenta ler do objeto de token direto
-      if (currentUser.token?.access_token) {
-        return currentUser.token.access_token;
-      }
-      // 3. Tenta ler de uma propriedade aninhada comum
-      if (currentUser.auth?.token) {
-        return currentUser.auth.token;
-      }
-      // 4. Último recurso: Ver se o token está "solto" no objeto
-      if (typeof currentUser === 'string') return currentUser;
-    } catch (e) {
-      console.error("Erro ao extrair token:", e);
-    }
+      if (currentUser.token?.access_token) return currentUser.token.access_token;
+      if (currentUser.access_token) return currentUser.access_token;
+    } catch (e) {}
     return null;
   };
 
@@ -137,7 +134,7 @@ export default function AdminLogin() {
       const tokenLen = token ? token.length : 0;
 
       if (process.env.NODE_ENV === 'production' && tokenLen < 10) {
-        alert(`Erro Crítico: O painel não conseguiu gerar o seu token de segurança (Tamanho: ${tokenLen}). \n\nPor favor, saia do painel, feche a aba e tente logar novamente.`);
+        alert(`Erro Crítico de Sessão: O token não foi encontrado no navegador. \n\nPor favor, tente sair e entrar novamente.`);
         setLoading(false);
         return;
       }
@@ -156,7 +153,7 @@ export default function AdminLogin() {
       if (res.ok) {
         alert(`${type.charAt(0).toUpperCase() + type.slice(1)} salvo com sucesso!`);
       } else {
-        alert(`Erro ao salvar. \n\nToken enviado pelo navegador: ${tokenLen} caracteres. \nErro do servidor: ${result.error || "Erro desconhecido"}`);
+        alert(`Erro ao salvar. \n\nToken medido: ${tokenLen} chars. \nServidor respondeu: ${result.error || "Erro desconhecido"}`);
       }
     } catch (error) {
       console.error("Erro ao salvar:", error);
