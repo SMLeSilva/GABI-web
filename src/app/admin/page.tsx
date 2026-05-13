@@ -52,13 +52,23 @@ export default function AdminLogin() {
 
     setLoginLoading(true);
     try {
+      // Limpar tokens antigos antes de um novo login para evitar loop
+      localStorage.removeItem('netlify_access_token');
+      
       const loggedUser: any = await login(username, password);
+      console.log("Login realizado. Objeto retornado:", loggedUser);
+      
       if (loggedUser) {
-        // BRUTE FORCE: Salvar o token manualmente
-        const token = loggedUser.token?.access_token || loggedUser.access_token;
+        // Tentar extrair o token de todas as formas possíveis
+        const token = loggedUser.token?.access_token || loggedUser.access_token || (loggedUser.token && typeof loggedUser.token === 'string' ? loggedUser.token : null);
+        
         if (token) {
           localStorage.setItem('netlify_access_token', token);
+          console.log("Token guardado no cofre com sucesso!");
+        } else {
+          console.warn("Objeto de login veio sem token visível.");
         }
+        
         setIsLoggedIn(true);
         setUser(loggedUser);
       }
@@ -73,12 +83,12 @@ export default function AdminLogin() {
   const handleLogout = async () => {
     try {
       await logout();
-      localStorage.clear();
-      sessionStorage.clear();
     } catch (e) {}
+    localStorage.clear();
+    sessionStorage.clear();
     setIsLoggedIn(false);
     setUser(null);
-    window.location.reload();
+    window.location.href = '/admin'; // Forçar recarregamento limpo
   };
 
   const validateEmail = (email: string) => {
@@ -97,18 +107,16 @@ export default function AdminLogin() {
   };
 
   const getValidToken = async () => {
-    // 1. Tenta ler do "cofre" manual (Brute Force)
+    // 1. Cofre manual
     const manualToken = localStorage.getItem('netlify_access_token');
     if (manualToken && manualToken.length > 20) return manualToken;
 
-    // 2. Tenta os métodos padrões
+    // 2. Métodos padrões
     const currentUser: any = user || getUser();
     if (!currentUser) return null;
 
     try {
-      if (typeof currentUser.jwt === 'function') {
-        return await currentUser.jwt();
-      }
+      if (typeof currentUser.jwt === 'function') return await currentUser.jwt();
       if (currentUser.token?.access_token) return currentUser.token.access_token;
       if (currentUser.access_token) return currentUser.access_token;
     } catch (e) {}
@@ -134,7 +142,8 @@ export default function AdminLogin() {
       const tokenLen = token ? token.length : 0;
 
       if (process.env.NODE_ENV === 'production' && tokenLen < 10) {
-        alert(`Erro Crítico de Sessão: O token não foi encontrado no navegador. \n\nPor favor, tente sair e entrar novamente.`);
+        const debugInfo = JSON.stringify(user || getUser() || "Nenhum usuário achado").substring(0, 200);
+        alert(`Erro de Sessão (Tamanho: ${tokenLen}). \n\nDebug User: ${debugInfo}... \n\nPor favor, saia e entre novamente.`);
         setLoading(false);
         return;
       }
@@ -153,7 +162,7 @@ export default function AdminLogin() {
       if (res.ok) {
         alert(`${type.charAt(0).toUpperCase() + type.slice(1)} salvo com sucesso!`);
       } else {
-        alert(`Erro ao salvar. \n\nToken medido: ${tokenLen} chars. \nServidor respondeu: ${result.error || "Erro desconhecido"}`);
+        alert(`Erro ao salvar. \nResposta do servidor: ${result.error || "Erro desconhecido"}`);
       }
     } catch (error) {
       console.error("Erro ao salvar:", error);
@@ -232,7 +241,7 @@ export default function AdminLogin() {
         const newData = { ...servicosData };
         newData.categories[catIdx].image = result.url;
         setServicosData(newData);
-        alert("Imagem enviada e otimizada com sucesso!");
+        alert("Imagem enviada com sucesso!");
       } else {
         alert("Erro no upload: " + (result.error || "Erro desconhecido"));
       }
